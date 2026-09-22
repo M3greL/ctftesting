@@ -1,5 +1,5 @@
 Common Ground internal backup
 
-The backup service is not protected by authentication.
+FLAG{c1tsE006_no1_s3cr4t_4lag}
 
-FLAG{test123}
+The backup service is not protected by authentication.

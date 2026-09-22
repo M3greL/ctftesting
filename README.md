@@ -12,7 +12,21 @@ profiles or when hovering over an author name.
 python server.py
 ```
 
-Open <http://127.0.0.1:8000>. The home page is public and contains one food post
+The backup service is protected by a simple TCP port knock. In a second
+terminal, run:
+
+```powershell
+python knock.py 127.0.0.1
+```
+
+The knocker connects to ports `7001`, `7002`, and `7003` in that order. The
+backup service then accepts requests from that source address for 60 seconds.
+The Common Ground website remains freely accessible on port `8000`. If the
+backup is accessed before knocking, it returns an error; a wrong order or a
+pause of more than five seconds resets the sequence. This is an
+application-level teaching example, not a replacement for a host firewall.
+
+Open <http://127.0.0.1:8000> at any time. The home page is public and contains one food post
 by Alice and one gym post by Bob. Each post opens on its own page, and each
 author name links to that author's profile. The **Authors** tab at `/authors`
 lists a card for every author with published stories.
@@ -41,8 +55,8 @@ also have downloadable story-related files on their private profiles.
 
 ## Network challenge
 
-The lab also starts an unauthenticated, read-only backup service on TCP port
-`9001`. Players can discover it with a port scan and connect with Netcat:
+The lab also starts a read-only backup service on TCP port `9001`. Players can
+discover it with a port scan, perform the knock, and connect with Netcat:
 
 ```text
 nc <target> 9001

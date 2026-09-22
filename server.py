@@ -8,6 +8,7 @@ import secrets
 import sqlite3
 import socketserver
 import threading
+import time
 import uuid
 
 
@@ -15,6 +16,9 @@ HOST = "127.0.0.1"
 PORT = 8000
 BACKUP_HOST = "0.0.0.0"
 BACKUP_PORT = 9001
+KNOCK_PORTS = (7001, 7002, 7003)
+KNOCK_TIMEOUT = 5
+KNOCK_UNLOCK_SECONDS = 60
 DATABASE = Path(__file__).resolve().parent / "idor_lab.db"
 BACKUP_DIRECTORY = Path(__file__).resolve().parent / "backups"
 SESSIONS = {}
@@ -39,6 +43,9 @@ class BackupRequestHandler(socketserver.StreamRequestHandler):
         self.wfile.write(f"{message}\n".encode("utf-8"))
 
     def handle(self):
+        if not self.server.knock_state.is_unlocked(self.client_address[0]):
+            self.write_line("ERROR complete the port knock first")
+            return
         self.write_line("Common Ground backup service")
         self.write_line("Commands: LIST, GET <file>, QUIT")
         while True:
@@ -70,6 +77,71 @@ class BackupRequestHandler(socketserver.StreamRequestHandler):
 class BackupServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
+
+
+class PortKnockState:
+    def __init__(self, sequence, sequence_timeout, unlock_duration):
+        self.sequence = sequence
+        self.sequence_timeout = sequence_timeout
+        self.unlock_duration = unlock_duration
+        self.progress = {}
+        self.unlocked_until = {}
+        self.lock = threading.Lock()
+
+    def record(self, address, port):
+        now = time.monotonic()
+        with self.lock:
+            if self.unlocked_until.get(address, 0) > now:
+                return
+
+            current = self.progress.get(address)
+            if not current or now - current[0] > self.sequence_timeout or port != self.sequence[current[1]]:
+                current = (now, 0)
+            if port == self.sequence[current[1]]:
+                next_index = current[1] + 1
+                if next_index == len(self.sequence):
+                    self.unlocked_until[address] = now + self.unlock_duration
+                    self.progress.pop(address, None)
+                else:
+                    self.progress[address] = (now, next_index)
+            else:
+                self.progress.pop(address, None)
+
+    def is_unlocked(self, address):
+        with self.lock:
+            if self.unlocked_until.get(address, 0) > time.monotonic():
+                return True
+            self.unlocked_until.pop(address, None)
+            return False
+
+
+class PortKnockRequestHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        self.server.knock_state.record(self.client_address[0], self.server.knock_port)
+
+
+class PortKnockServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+
+def start_port_knockers():
+    state = PortKnockState(KNOCK_PORTS, KNOCK_TIMEOUT, KNOCK_UNLOCK_SECONDS)
+    servers = []
+    for knock_port in KNOCK_PORTS:
+        server = PortKnockServer(
+            ("0.0.0.0", knock_port),
+            PortKnockRequestHandler,
+        )
+        server.knock_state = state
+        server.knock_port = knock_port
+        threading.Thread(
+            target=server.serve_forever,
+            name=f"port-knock-{knock_port}",
+            daemon=True,
+        ).start()
+        servers.append(server)
+    return state, servers
 
 
 def initialize_database():
@@ -479,8 +551,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    KNOCK_STATE, knock_servers = start_port_knockers()
     initialize_database()
     backup_server = BackupServer((BACKUP_HOST, BACKUP_PORT), BackupRequestHandler)
+    backup_server.knock_state = KNOCK_STATE
     backup_server_thread = threading.Thread(
         target=backup_server.serve_forever,
         name="backup-service",
@@ -488,5 +562,6 @@ if __name__ == "__main__":
     )
     backup_server_thread.start()
     print(f"Common Ground running at http://{HOST}:{PORT}")
+    print(f"Knock ports: {', '.join(str(port) for port in KNOCK_PORTS)}")
     print(f"Backup service running at {BACKUP_HOST}:{BACKUP_PORT}")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
