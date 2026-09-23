@@ -13,10 +13,10 @@ import uuid
 
 
 HOST = "127.0.0.1"
-PORT = 8000
+PORT = 8001
 BACKUP_HOST = "0.0.0.0"
-BACKUP_PORT = 9001
-KNOCK_PORTS = (7001, 7002, 7003)
+BACKUP_PORT = 9000
+KNOCK_PORTS = (8002, 8003, 8004)
 KNOCK_TIMEOUT = 5
 KNOCK_UNLOCK_SECONDS = 60
 DATABASE = Path(__file__).resolve().parent / "idor_lab.db"
@@ -385,7 +385,8 @@ class Handler(BaseHTTPRequestHandler):
         else:
             files_section = '<p class="subtle">Personal files are private to this user.</p>'
         initial = html.escape(profile["username"][0].upper())
-        body = f"""<section class="profile"><div class="avatar">{initial}</div><div class="kicker">Author profile</div><h1>{html.escape(profile["username"].title())}</h1><p class="subtle">Sharing a few personal notes and things worth remembering.</p><h2>Stories by {html.escape(profile["username"].title())}</h2>{links}{files_section}<p><a class="back-link" href="/">← Back to stories</a></p></section>"""
+        bob_flag = '<p class="subtle">FLAG{Bob_7hE_BUiLDerFL@9}</p>' if profile["username"] == "bob" else ""
+        body = f"""<section class="profile"><div class="avatar">{initial}</div><div class="kicker">Author profile</div><h1>{html.escape(profile["username"].title())}</h1><p class="subtle">Sharing a few personal notes and things worth remembering.</p><h2>Stories by {html.escape(profile["username"].title())}</h2>{bob_flag}{links}{files_section}<p><a class="back-link" href="/">← Back to stories</a></p></section>"""
         title = f'{profile["username"].title()} · Author'
         self.send_page(page(title, body, user))
 

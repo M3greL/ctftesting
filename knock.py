@@ -1,10 +1,8 @@
-"""Open the Common Ground website with its TCP port-knocking sequence."""
-
 import argparse
 import socket
 
 
-KNOCK_PORTS = (7001, 7002, 7003)
+KNOCK_PORTS = (8002, 8003, 8004)
 
 
 def knock(host, ports, timeout):
@@ -19,7 +17,7 @@ def main():
     parser.add_argument("--timeout", type=float, default=2)
     args = parser.parse_args()
     knock(args.host, KNOCK_PORTS, args.timeout)
-    print("Port knock accepted. Open http://{}:8000".format(args.host))
+    print("Port knock accepted. Open http://{}:8001".format(args.host))
 
 
 if __name__ == "__main__":
