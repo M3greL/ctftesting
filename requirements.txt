@@ -1,2 +1,0 @@
-# Common Ground uses only Python's standard library.
-# No third-party packages are required.

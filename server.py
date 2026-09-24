@@ -12,13 +12,14 @@ import time
 import uuid
 
 
-HOST = "127.0.0.1"
+BIND_HOST = "0.0.0.0"
+UUID_HOST = "127.0.0.1"
 PORT = 8001
 BACKUP_HOST = "0.0.0.0"
 BACKUP_PORT = 9000
 KNOCK_PORTS = (8002, 8003, 8004)
 KNOCK_TIMEOUT = 5
-KNOCK_UNLOCK_SECONDS = 60
+KNOCK_UNLOCK_SECONDS = 180
 DATABASE = Path(__file__).resolve().parent / "idor_lab.db"
 BACKUP_DIRECTORY = Path(__file__).resolve().parent / "backups"
 SESSIONS = {}
@@ -29,7 +30,7 @@ def password_hash(password):
 
 
 def generate_uuid(user_name):
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{HOST}/users/{user_name}"))
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{UUID_HOST}/users/{user_name}"))
 
 
 def database():
@@ -46,7 +47,7 @@ class BackupRequestHandler(socketserver.StreamRequestHandler):
         if not self.server.knock_state.is_unlocked(self.client_address[0]):
             self.write_line("ERROR complete the port knock first")
             return
-        self.write_line("Common Ground backup service")
+        self.write_line("Backup service")
         self.write_line("Commands: LIST, GET <file>, QUIT")
         while True:
             raw_command = self.rfile.readline()
@@ -562,7 +563,7 @@ if __name__ == "__main__":
         daemon=True,
     )
     backup_server_thread.start()
-    print(f"Common Ground running at http://{HOST}:{PORT}")
+    print(f"Website is running at http://{BIND_HOST}:{PORT}")
     print(f"Knock ports: {', '.join(str(port) for port in KNOCK_PORTS)}")
     print(f"Backup service running at {BACKUP_HOST}:{BACKUP_PORT}")
-    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    ThreadingHTTPServer((BIND_HOST, PORT), Handler).serve_forever()

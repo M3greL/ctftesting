@@ -12,7 +12,7 @@ def knock(host, ports, timeout):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Knock on the Common Ground ports")
+    parser = argparse.ArgumentParser(description="Knock on the ports")
     parser.add_argument("host", nargs="?", default="127.0.0.1")
     parser.add_argument("--timeout", type=float, default=2)
     args = parser.parse_args()
