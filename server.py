@@ -12,7 +12,7 @@ import time
 import uuid
 
 
-BIND_HOST = "0.0.0.0"
+BIND_HOST = "127.0.0.1"
 UUID_HOST = "127.0.0.1"
 PORT = 8001
 BACKUP_HOST = "0.0.0.0"
@@ -22,7 +22,14 @@ KNOCK_TIMEOUT = 5
 KNOCK_UNLOCK_SECONDS = 180
 DATABASE = Path(__file__).resolve().parent / "idor_lab.db"
 BACKUP_DIRECTORY = Path(__file__).resolve().parent / "backups"
+ASSET_DIRECTORY = Path(__file__).resolve().parent / "assets"
 SESSIONS = {}
+DISPLAY_NAMES = {"bob": "Jinvicular", "eve": "Jin Jin Sakhur", "Capitan Jin": "Dr Jinsday"}
+PROFILE_IMAGES = {
+    "bob": "/assets/jinvicular.png",
+    "eve": "/assets/jin_jin_sakhur.png",
+    "Capitan Jin": "/assets/dr_jinsday.png",
+}
 
 
 def password_hash(password):
@@ -37,6 +44,15 @@ def database():
     connection = sqlite3.connect(DATABASE)
     connection.row_factory = sqlite3.Row
     return connection
+
+
+def display_name(username):
+    return DISPLAY_NAMES.get(username, username.title())
+
+
+def render_post_body(body):
+    paragraphs = [paragraph for paragraph in body.split("\n\n") if paragraph]
+    return "".join(f"<p>{html.escape(paragraph)}</p>" for paragraph in paragraphs)
 
 
 class BackupRequestHandler(socketserver.StreamRequestHandler):
@@ -189,6 +205,18 @@ def initialize_database():
         }
         if "file_path" not in file_columns:
             connection.execute("ALTER TABLE user_files ADD COLUMN file_path TEXT")
+        connection.execute(
+            "UPDATE users SET username = ? WHERE username = ?",
+            ("CuriousDuck228", "alice"),
+        )
+        connection.execute(
+            "UPDATE users SET username = ? WHERE username = ?",
+            ("MegaJin", "diana"),
+        )
+        connection.execute(
+            "UPDATE users SET username = ? WHERE username = ?",
+            ("Capitan Jin", "MegaJin"),
+        )
         connection.executemany(
             """
             INSERT OR IGNORE INTO users
@@ -196,11 +224,11 @@ def initialize_database():
             VALUES (?, ?, ?, ?, ?, ?)
             """,
             [
-                ("alice", password_hash("alicepass"), "user", "alice@example.test",
+                ("CuriousDuck228", password_hash("v3rys1!r0ngp2ssw0r8"), "user", "alice@example.test",
                  "Alice's private project is called Lighthouse.", generate_uuid("alice")),
-                ("bob", password_hash("bobpass"), "user", "bob@example.test",
+                ("bob", password_hash("P8pVqr{hQP85"), "user", "bob@example.test",
                  "Bob's private project is called Paperclip.", generate_uuid("bob")),
-                ("diana", password_hash("dianapass"), "user", "diana@example.test",
+                ("Capitan Jin", password_hash("dianapass"), "user", "diana@example.test",
                  "Diana's private project is called Atlas.", generate_uuid("diana")),
                 ("eve", password_hash("evepass"), "user", "eve@example.test",
                  "Eve's private project is called Orbit.", generate_uuid("eve")),
@@ -209,24 +237,31 @@ def initialize_database():
         users = {
             row["username"]: row["id"]
             for row in connection.execute(
-                "SELECT id, username FROM users WHERE username IN ('alice', 'bob', 'diana', 'eve')"
+                "SELECT id, username FROM users WHERE username IN ('CuriousDuck228', 'bob', 'Capitan Jin', 'eve')"
             )
         }
         connection.executemany(
             """
             INSERT INTO posts (id, user_id, title, topic, body, published_at)
-            SELECT ?, ?, ?, ?, ?, ?
-            WHERE NOT EXISTS (SELECT 1 FROM posts WHERE id = ?)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                user_id = excluded.user_id,
+                title = excluded.title,
+                topic = excluded.topic,
+                body = excluded.body,
+                published_at = excluded.published_at
             """,
             [
-                (1, users["alice"], "A Sunday Bowl Worth Repeating", "Food",
-                 "I put together a bright bowl with roasted sweet potato, crunchy greens, and a lemony dressing. It was simple, filling, and exactly the kind of meal I want to make again next weekend.", "September 18, 2026", 1),
-                (2, users["bob"], "The Small Gym Habit That Stuck", "Gym",
-                 "My best gym upgrade was lowering the pressure to do everything perfectly. Three focused sessions a week, a good playlist, and tracking one small improvement has made training feel sustainable instead of intimidating.", "September 16, 2026", 2),
-                (3, users["diana"], "A Cozy Game for a Rainy Evening", "Games",
-                 "I spent last night with a gentle puzzle game that rewards curiosity instead of speed. The soft music and tiny discoveries made it a perfect rainy-evening reset, and I logged off feeling calmer than when I started.", "September 14, 2026", 3),
-                (4, users["eve"], "The Snack I Keep Making", "Food",
-                 "My current favorite snack is toasted bread with ricotta, sliced fruit, and a little honey. It takes only a few minutes, feels special without much effort, and has become my reliable afternoon break.", "September 12, 2026", 4),
+                (1, users["CuriousDuck228"], "Building a Safer Password Routine", "Account Security",
+                 "A strong password is only the beginning of account security. I have started using a unique passphrase for every service, storing them in a password manager, and enabling multi-factor authentication wherever it is available.", "September 18, 2026"),
+                (2, users["bob"], "The Smallest Patch That Matters", "Vulnerability Management",
+                 "A neglected software update can become an easy entry point for an attacker. I now review security advisories, prioritize internet-facing systems, and verify that critical patches were actually applied instead of assuming the update completed.", "September 16, 2026"),
+                (3, users["Capitan Jin"], "A Calm Way to Read Suspicious Messages", "Phishing Awareness",
+                 "Phishing attempts often rely on urgency rather than sophisticated code. Before clicking a link or opening an attachment, I check the sender, inspect the destination carefully, and confirm unusual requests through a trusted channel.", "September 14, 2026"),
+                (4, users["eve"], "A Quiet Knock at the Door", "Network Security",
+                 ("Some doors in the CyberMaxxing Forum do not open with a key; they listen for a quiet knock. If you are looking for the backup service, start with port 8002, then knock on 8003, and finish with 8004 in that exact order.\n\n"
+                  "Keep the sequence moving and do not pause for more than a few seconds between knocks. Once all three ports answer in order, the way forward should open briefly, so be ready to connect and see what is waiting on the other side."),
+                  "September 12, 2026"),
             ],
         )
         connection.executemany(
@@ -238,8 +273,8 @@ def initialize_database():
             )
             """,
             [
-                (users["alice"], "Recipe Notes", "alice_account/recipe_notes.txt", users["alice"], "Recipe Notes"),
-                (users["diana"], "Training Plan", "diana_account/training_plan.txt", users["diana"], "Training Plan"),
+                (users["CuriousDuck228"], "Recipe Notes", "alice_account/recipe_notes.txt", users["CuriousDuck228"], "Recipe Notes"),
+                (users["Capitan Jin"], "Training Plan", "diana_account/training_plan.txt", users["Capitan Jin"], "Training Plan"),
                 (users["eve"], "Game Backlog", "eve_account/game_backlog.txt", users["eve"], "Game Backlog"),
             ],
         )
@@ -261,8 +296,20 @@ def initialize_database():
         )
         connection.execute("DELETE FROM user_files WHERE file_path IS NULL")
         connection.execute(
-            "UPDATE users SET uuid = ? WHERE username = 'alice' AND (uuid IS NULL OR uuid = '')",
+            "UPDATE users SET uuid = ? WHERE username = 'CuriousDuck228' AND (uuid IS NULL OR uuid = '')",
             (generate_uuid("alice"),),
+        )
+        connection.execute(
+            "UPDATE users SET password_hash = ? WHERE username = ?",
+            (password_hash("v3rys1!r0ngp2ssw0r8"), "CuriousDuck228"),
+        )
+        connection.execute(
+            "UPDATE users SET password_hash = ? WHERE username = ?",
+            (password_hash("no1!0rpu8li6k"), "admin"),
+        )
+        connection.execute(
+            "UPDATE users SET password_hash = ? WHERE username = ?",
+            (password_hash("P8pVqr{hQP85"), "bob"),
         )
         connection.execute(
             "UPDATE users SET uuid = ? WHERE username = 'bob' AND (uuid IS NULL OR uuid = '')",
@@ -274,7 +321,7 @@ def page(title, body, user=None):
     account_link = '<a href="/login">Log in</a>'
     if user:
         account_link = (
-            f'<span class="session-user">Hi, {html.escape(user["username"].title())}</span>'
+            f'<span class="session-user">Hi, {html.escape(display_name(user["username"]))}</span>'
             f'<a href="/users/user?userid={html.escape(user["uuid"])}">My profile</a>'
             '<a href="/logout">Log out</a>'
         )
@@ -283,51 +330,56 @@ def page(title, body, user=None):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{html.escape(title)} · Common Ground</title>
+  <title>{html.escape(title)} · CyberMaxxing Forum</title>
   <style>
-    :root {{ --ink: #24302b; --muted: #66736b; --paper: #fffdf8; --cream: #f5f0e7; --line: #dfe5db; --green: #285b4d; --orange: #db704b; }}
+    :root {{ --ink: #e8edf2; --muted: #9caaba; --paper: #111b27; --cream: #08111c; --line: #2b3b4d; --navy: #0d1926; --red: #d44f4f; --gold: #c6a76b; }}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; color: var(--ink); background: var(--cream); font-family: Georgia, "Times New Roman", serif; }}
+    body {{ margin: 0; color: var(--ink); background: radial-gradient(circle at 90% 0%, #172a3e 0, transparent 32rem), var(--cream); font-family: "Segoe UI", Arial, sans-serif; }}
     .shell {{ width: min(1080px, calc(100% - 40px)); margin: 0 auto; }}
-    header {{ padding: 28px 0; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }}
-    .brand {{ color: var(--green); font-size: 1.35rem; font-weight: 700; letter-spacing: -.03em; text-decoration: none; }}
-    nav a, .session-user {{ color: var(--muted); margin-left: 24px; text-decoration: none; font: 600 .86rem Arial, sans-serif; }}
-    nav a:hover {{ color: var(--orange); }}
+    header {{ padding: 22px 0; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }}
+    .brand {{ color: var(--ink); display: flex; align-items: center; gap: 12px; font-size: 1.05rem; font-weight: 800; letter-spacing: .12em; text-decoration: none; text-transform: uppercase; }}
+    .brand::before {{ content: "M"; display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--gold); border-radius: 50%; color: var(--gold); font-size: .9rem; }}
+    nav a, .session-user {{ color: var(--muted); margin-left: 24px; text-decoration: none; font: 700 .74rem Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }}
+    nav a:hover {{ color: var(--red); }}
     main {{ padding: 68px 0 90px; }}
-    .intro {{ max-width: 660px; margin-bottom: 44px; }}
-    .kicker {{ color: var(--orange); font: 700 .72rem Arial, sans-serif; letter-spacing: .16em; text-transform: uppercase; }}
-    h1 {{ color: var(--green); font-size: clamp(2.6rem, 7vw, 5.5rem); letter-spacing: -.065em; line-height: .95; margin: 14px 0 20px; }}
-    h2 {{ color: var(--green); font-size: 2rem; letter-spacing: -.045em; margin: 10px 0; }}
-    p {{ font-size: 1.1rem; line-height: 1.7; }}
+    .intro {{ max-width: 720px; margin-bottom: 44px; }}
+    .kicker {{ color: var(--red); font: 800 .7rem Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; }}
+    h1 {{ color: var(--ink); font-size: clamp(2.6rem, 7vw, 5.5rem); letter-spacing: -.055em; line-height: .95; margin: 14px 0 20px; }}
+    h2 {{ color: var(--ink); font-size: 1.6rem; letter-spacing: -.025em; margin: 10px 0; }}
+    p {{ font-size: 1.05rem; line-height: 1.7; }}
     .subtle {{ color: var(--muted); }}
     .post-grid, .author-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }}
-    .post-card, .post-page, .profile {{ background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 28px; }}
-    .author-card {{ background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 25px; }}
+    .post-card, .post-page, .profile {{ background: linear-gradient(145deg, rgba(22, 35, 50, .98), rgba(13, 25, 38, .98)); border: 1px solid var(--line); border-radius: 3px; padding: 28px; box-shadow: 0 18px 40px rgba(0, 0, 0, .18); }}
+    .author-card {{ background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 25px; }}
     .author-card h2 {{ margin-bottom: 5px; }}
-    .post-card {{ min-height: 295px; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }}
-    .post-card:hover {{ transform: translateY(-4px); box-shadow: 0 14px 30px rgba(40, 91, 77, .1); }}
+    .post-card {{ min-height: 295px; display: flex; flex-direction: column; transition: transform .2s, border-color .2s; }}
+    .post-card:hover {{ transform: translateY(-4px); border-color: var(--gold); }}
     .post-card p {{ flex: 1; }}
     .file-list {{ list-style: none; margin: 18px 0 28px; padding: 0; text-align: left; }}
-    .file-list li {{ background: #f0f4ed; border-radius: 8px; margin: 8px 0; padding: 11px 14px; }}
+    .file-list li {{ background: #0b1520; border-left: 3px solid var(--red); margin: 8px 0; padding: 11px 14px; }}
     .meta {{ color: var(--muted); font: .82rem Arial, sans-serif; }}
-    .topic {{ color: var(--orange); font-weight: 700; }}
-    .read-link, .back-link {{ color: var(--green); font: 700 .9rem Arial, sans-serif; text-decoration: none; }}
-    .read-link:hover, .back-link:hover {{ color: var(--orange); }}
-    .author-link {{ color: var(--green); font-weight: 700; text-decoration: underline; text-decoration-color: #b8d0c4; text-underline-offset: 3px; }}
+    .topic {{ color: var(--gold); font-weight: 700; }}
+    .read-link, .back-link {{ color: var(--gold); font: 700 .82rem Arial, sans-serif; text-decoration: none; text-transform: uppercase; letter-spacing: .06em; }}
+    .read-link:hover, .back-link:hover {{ color: var(--red); }}
+    .author-link {{ color: var(--ink); font-weight: 700; text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }}
     .post-page {{ max-width: 760px; margin: 0 auto; }}
     .post-page h1 {{ font-size: clamp(2.5rem, 6vw, 4.5rem); }}
     .post-body {{ margin: 38px 0; }}
     .profile {{ max-width: 680px; margin: 0 auto; text-align: center; }}
-    .avatar {{ align-items: center; background: #dcebe1; border-radius: 50%; color: var(--green); display: flex; font: 700 1.8rem Arial, sans-serif; height: 76px; justify-content: center; margin: 0 auto 20px; width: 76px; }}
-    footer {{ border-top: 1px solid var(--line); color: var(--muted); font: .8rem Arial, sans-serif; padding: 22px 0 34px; }}
+    .avatar {{ align-items: center; background: #1e3247; border: 2px solid var(--gold); border-radius: 50%; color: var(--gold); display: flex; font: 700 1.8rem Arial, sans-serif; height: 76px; justify-content: center; margin: 0 auto 20px; object-fit: cover; width: 76px; }}
+    .avatar-image {{ display: block; }}
+    .profile .avatar-image {{ height: 240px; width: 240px; margin-bottom: 26px; }}
+    input {{ background: #0b1520; border: 1px solid var(--line); color: var(--ink); padding: 10px; width: min(100%, 300px); }}
+    button {{ background: var(--red); border: 0; color: white; cursor: pointer; font-weight: 800; padding: 11px 20px; text-transform: uppercase; letter-spacing: .08em; }}
+    footer {{ border-top: 1px solid var(--line); color: var(--muted); font: .72rem Arial, sans-serif; letter-spacing: .08em; padding: 22px 0 34px; text-transform: uppercase; }}
     @media (max-width: 680px) {{ .shell {{ width: min(100% - 28px, 560px); }} header {{ padding: 20px 0; }} nav a {{ margin-left: 12px; }} main {{ padding-top: 44px; }} .post-grid {{ grid-template-columns: 1fr; }} .post-card {{ min-height: 260px; }} }}
   </style>
 </head>
 <body>
   <div class="shell">
-    <header><a class="brand" href="/">Common Ground</a><nav><a href="/">Stories</a><a href="/authors">Authors</a>{account_link}</nav></header>
+    <header><a class="brand" href="/">CyberMaxxing Forum</a><nav><a href="/">Briefings</a><a href="/authors">Personnel</a>{account_link}</nav></header>
     <main>{body}</main>
-    <footer>Small stories from everyday life · Common Ground</footer>
+    <footer>Restricted community forum · CyberMaxxing Forum · Internal use</footer>
   </div>
 </body>
 </html>"""
@@ -336,7 +388,7 @@ def page(title, body, user=None):
 def author_link(author):
     return (
         f'<a class="author-link" href="/profile/stories?userid={html.escape(author["uuid"])}">'
-        f'{html.escape(author["username"].title())}</a>'
+        f'{html.escape(display_name(author["username"]))}</a>'
     )
 
 
@@ -385,24 +437,45 @@ class Handler(BaseHTTPRequestHandler):
             files_section = f'<h2>Personal files</h2><ul class="file-list">{file_links}</ul>'
         else:
             files_section = '<p class="subtle">Personal files are private to this user.</p>'
-        initial = html.escape(profile["username"][0].upper())
-        bob_flag = '<p class="subtle">FLAG{Bob_7hE_BUiLDerFL@9}</p>' if profile["username"] == "bob" else ""
-        body = f"""<section class="profile"><div class="avatar">{initial}</div><div class="kicker">Author profile</div><h1>{html.escape(profile["username"].title())}</h1><p class="subtle">Sharing a few personal notes and things worth remembering.</p><h2>Stories by {html.escape(profile["username"].title())}</h2>{bob_flag}{links}{files_section}<p><a class="back-link" href="/">← Back to stories</a></p></section>"""
-        title = f'{profile["username"].title()} · Author'
+        name = display_name(profile["username"])
+        image = PROFILE_IMAGES.get(profile["username"])
+        avatar = (
+            f'<img class="avatar avatar-image profile-avatar" src="{image}" alt="{html.escape(name)}">'
+            if image
+            else f'<div class="avatar">{html.escape(name[0].upper())}</div>'
+        )
+        body = f"""<section class="profile"><div class="kicker">Personnel dossier · {html.escape("private" if private else "public")}</div>{avatar}<h1>{html.escape(name)}</h1><p class="subtle">Field notes, personal briefings, and material cleared for this forum.</p><h2>Stories by {html.escape(name)}</h2>{links}{files_section}<p><a class="back-link" href="/">← Back to briefings</a></p></section>"""
+        title = f'{name} · Personnel'
         self.send_page(page(title, body, user))
 
     def do_GET(self):
         path = urlparse(self.path).path.rstrip("/") or "/"
         user = self.current_user()
+        if path.startswith("/assets/"):
+            image_name = path.removeprefix("/assets/")
+            image_path = ASSET_DIRECTORY / image_name
+            if image_path.parent != ASSET_DIRECTORY or image_path.suffix.lower() != ".png":
+                self.send_page(page("Not found", '<div class="post-page"><h1>Asset not found</h1></div>'), 404)
+                return
+            if not image_path.is_file():
+                self.send_page(page("Not found", '<div class="post-page"><h1>Asset not found</h1></div>'), 404)
+                return
+            image = image_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(image)))
+            self.end_headers()
+            self.wfile.write(image)
+            return
         if path == "/login":
             body = """<section class="profile"><div class="kicker">Welcome back</div><h1>Log in</h1>
-              <p class="subtle">Sign in to your Common Ground account.</p>
+              <p class="subtle">Authenticate to access the CyberMaxxing Forum.</p>
               <form method="post" action="/login">
                 <p><label for="username">Username</label><br><input id="username" name="username" required></p>
                 <p><label for="password">Password</label><br><input id="password" name="password" type="password" required></p>
                 <button type="submit">Log in</button>
               </form>
-              <p class="subtle">Demo accounts: alice / alicepass and bob / bobpass.</p>
+              <p class="subtle">Demo accounts: CuriousDuck228 / v3rys1!r0ngp2ssw0r8 and bob / P8pVqr{hQP85.</p>
             </section>"""
             self.send_page(page("Log in", body, user))
             return
@@ -450,14 +523,14 @@ class Handler(BaseHTTPRequestHandler):
                 ).fetchall()
                 cards = "".join(
                     f"""<article class="author-card">
-                      <div class="avatar">{html.escape(author["username"][0].upper())}</div>
-                      <h2>{html.escape(author["username"].title())}</h2>
+                      {f'<img class="avatar avatar-image" src="{PROFILE_IMAGES[author["username"]]}" alt="{html.escape(display_name(author["username"]))}">' if author["username"] in PROFILE_IMAGES else f'<div class="avatar">{html.escape(display_name(author["username"])[0].upper())}</div>'}
+                      <h2>{html.escape(display_name(author["username"]))}</h2>
                       <p class="subtle">{author["story_count"]} public {"stories" if author["story_count"] != 1 else "story"}</p>
                       <a class="read-link" href="/profile/stories?userid={html.escape(author["uuid"])}">View profile and stories →</a>
                     </article>"""
                     for author in authors
                 )
-                body = f"""<section class="intro"><div class="kicker">The community</div><h1>Meet the authors.</h1><p class="subtle">Browse every writer on Common Ground and discover their personal stories.</p></section><section class="author-grid">{cards}</section>"""
+                body = f"""<section class="intro"><div class="kicker">Personnel registry · clearance level 01</div><h1>Know the network.</h1><p class="subtle">Browse cleared contributors, active briefings, and the people behind the CyberMaxxing Forum.</p></section><section class="author-grid">{cards}</section>"""
                 self.send_page(page("Authors", body, user))
                 return
             if path == "/":
@@ -472,12 +545,12 @@ class Handler(BaseHTTPRequestHandler):
                     f"""<article class="post-card">
                       <div class="meta"><span class="topic">{html.escape(post["topic"])}</span> · {html.escape(post["published_at"])}</div>
                       <h2>{html.escape(post["title"])}</h2>
-                      <p>{html.escape(post["body"])}</p>
+                      {render_post_body(post["body"])}
                       <div class="meta">By {author_link(post)} &nbsp; <a class="read-link" href="/post/{post["id"]}">Read story →</a></div>
                     </article>"""
                     for post in posts
                 )
-                body = f"""<section class="intro"><div class="kicker">A personal blog</div><h1>Notes from the everyday.</h1><p class="subtle">A quiet corner for food, movement, games, and the little ideas that make a week feel like your own.</p></section><section class="post-grid">{cards}</section>"""
+                body = f"""<section class="intro"><div class="kicker">CyberMaxxing Forum · internal briefings</div><h1>Signals from the field.</h1><p class="subtle">A restricted channel for observations, routines, and the small details worth passing along.</p></section><section class="post-grid">{cards}</section>"""
                 self.send_page(page("Stories", body, user))
                 return
 
@@ -495,7 +568,7 @@ class Handler(BaseHTTPRequestHandler):
                   <div class="kicker">{html.escape(post["topic"])} · {html.escape(post["published_at"])}</div>
                   <h1>{html.escape(post["title"])}</h1>
                   <div class="meta">Written by {author_link(post)}</div>
-                  <div class="post-body"><p>{html.escape(post["body"])}</p></div>
+                  <div class="post-body">{render_post_body(post["body"])}</div>
                   <a class="back-link" href="/">← Back to stories</a>
                 </article>"""
                 self.send_page(page(post["title"], body, user))

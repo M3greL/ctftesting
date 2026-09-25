@@ -42,9 +42,9 @@ With the UUID that we are looking for:\
 
 The IDOR requires authentication, but it does not require the account being requested to match the logged-in account. 
 
-#### Login as Alice:
-name: Alice \
-pwd: Alicepass
+#### Login as CuriousDuck228:
+name: CuriousDuck228 \
+pwd: v3rys1!r0ngp2ssw0r8
 
 Then navigate to the profile screen, where we can see the uuid of Alice in the URL tab:
 

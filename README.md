@@ -1,7 +1,10 @@
-# Common Ground personal blog
+# CyberMaxxing Forum
 
-Common Ground is a small personal blog built with Python's standard library.
-Alice, Bob, Diana, and Eve each have a short public post. Visitors can open a
+CyberMaxxing Forum is a small classified-style community forum built with Python's
+standard library. CuriousDuck228, Jinvicular, Capitan Jin, and Jin Jin Sakhur each have a short
+public post. The database keeps the stable `bob` and `eve` account identifiers
+for compatibility, while the interface displays those contributors as
+Jinvicular and Jin Jin Sakhur. Visitors can open a
 post and follow its author to `/profile/stories?userid=<author-uuid>`. The UUID
 is used only as the profile lookup identifier and is not displayed on author
 profiles or when hovering over an author name.
@@ -21,13 +24,13 @@ python knock.py 127.0.0.1
 
 The knocker connects to ports `8002`, `8003`, and `8004` in that order. The
 backup service then accepts requests from that source address for 60 seconds.
-The Common Ground website remains freely accessible on port `8001`. If the
+The CyberMaxxing Forum website remains freely accessible on port `8001`. If the
 backup is accessed before knocking, it returns an error; a wrong order or a
 pause of more than five seconds resets the sequence. This is an
 application-level teaching example, not a replacement for a host firewall.
 
-Open <http://127.0.0.1:8001> at any time. The home page is public and contains one food post
-by Alice and one gym post by Bob. Each post opens on its own page, and each
+Open <http://127.0.0.1:8001> at any time. The home page is public and contains one security post
+by CuriousDuck228 and one security post by Jinvicular. Each post opens on its own page, and each
 author name links to that author's profile. The **Authors** tab at `/authors`
 lists a card for every author with published stories.
 
@@ -37,9 +40,10 @@ Visitors can log in with either seeded account:
 
 | Username | Password |
 | --- | --- |
-| `alice` | `alicepass` |
-| `bob` | `bobpass` |
-| `diana` | `dianapass` |
+| `admin` | `no1!0rpu8li6k` |
+| `CuriousDuck228` | `v3rys1!r0ngp2ssw0r8` |
+| `bob` | `P8pVqr{hQP85` |
+| `Capitan Jin` | `dianapass` |
 | `eve` | `evepass` |
 
 After logging in, open a private profile at `/users/user?userid=<user-uuid>`.
@@ -49,9 +53,9 @@ URL without checking that it belongs to the logged-in account. Changing
 and files, including downloadable files, demonstrating the IDOR vulnerability.
 Public author profiles and
 stories use `/profile/stories?userid=<author-uuid>`; these can be viewed by any
-visitor and never include personal files. Bob's downloadable **Top_Secret** file
-is stored under `bob_account/__pycache__/Top_Secret`. Alice, Diana, and Eve
-also have downloadable story-related files on their private profiles.
+visitor and never include personal files. Jinvicular's downloadable **Top_Secret**
+file is stored under `bob_account/__pycache__/Top_Secret`. CuriousDuck228, Capitan Jin, and
+Jin Jin Sakhur also has downloadable story-related files on their private profiles.
 
 ## Network challenge
 
