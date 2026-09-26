@@ -1,0 +1,3 @@
+FLAG{th1s_!s_s3cre11t_f16g}
+FLAG{c1tsE006_no1_s3cr4t_4lag}
+FLAG{Bob_7hE_BUiLDerFL@9}

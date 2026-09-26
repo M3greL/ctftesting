@@ -24,9 +24,9 @@ DATABASE = Path(__file__).resolve().parent / "idor_lab.db"
 BACKUP_DIRECTORY = Path(__file__).resolve().parent / "backups"
 ASSET_DIRECTORY = Path(__file__).resolve().parent / "assets"
 SESSIONS = {}
-DISPLAY_NAMES = {"bob": "Jinvicular", "eve": "Jin Jin Sakhur", "Capitan Jin": "Dr Jinsday"}
+DISPLAY_NAMES = {"jinvicular": "Jinvicular", "eve": "Jin Jin Sakhur", "Capitan Jin": "Dr Jinsday"}
 PROFILE_IMAGES = {
-    "bob": "/assets/jinvicular.png",
+    "jinvicular": "/assets/jinvicular.png",
     "eve": "/assets/jin_jin_sakhur.png",
     "Capitan Jin": "/assets/dr_jinsday.png",
 }
@@ -217,6 +217,18 @@ def initialize_database():
             "UPDATE users SET username = ? WHERE username = ?",
             ("Capitan Jin", "MegaJin"),
         )
+        connection.execute(
+            "UPDATE users SET username = ? WHERE username = ?",
+            ("jinvicular", "bob"),
+        )
+        connection.execute(
+            """UPDATE user_files SET file_path = ?
+            WHERE file_path = ?""",
+            (
+                "jinvicular_account/__pycache__/Top_Secret",
+                "bob_account/__pycache__/Top_Secret",
+            ),
+        )
         connection.executemany(
             """
             INSERT OR IGNORE INTO users
@@ -226,8 +238,8 @@ def initialize_database():
             [
                 ("CuriousDuck228", password_hash("v3rys1!r0ngp2ssw0r8"), "user", "alice@example.test",
                  "Alice's private project is called Lighthouse.", generate_uuid("alice")),
-                ("bob", password_hash("P8pVqr{hQP85"), "user", "bob@example.test",
-                 "Bob's private project is called Paperclip.", generate_uuid("bob")),
+                ("jinvicular", password_hash("P8pVqr{hQP85"), "user", "jinvicular@example.test",
+                 "Jinvicular's private project is called Paperclip.", generate_uuid("jinvicular")),
                 ("Capitan Jin", password_hash("dianapass"), "user", "diana@example.test",
                  "Diana's private project is called Atlas.", generate_uuid("diana")),
                 ("eve", password_hash("evepass"), "user", "eve@example.test",
@@ -237,7 +249,7 @@ def initialize_database():
         users = {
             row["username"]: row["id"]
             for row in connection.execute(
-                "SELECT id, username FROM users WHERE username IN ('CuriousDuck228', 'bob', 'Capitan Jin', 'eve')"
+                "SELECT id, username FROM users WHERE username IN ('CuriousDuck228', 'jinvicular', 'Capitan Jin', 'eve')"
             )
         }
         connection.executemany(
@@ -254,7 +266,7 @@ def initialize_database():
             [
                 (1, users["CuriousDuck228"], "Building a Safer Password Routine", "Account Security",
                  "A strong password is only the beginning of account security. I have started using a unique passphrase for every service, storing them in a password manager, and enabling multi-factor authentication wherever it is available.", "September 18, 2026"),
-                (2, users["bob"], "The Smallest Patch That Matters", "Vulnerability Management",
+                (2, users["jinvicular"], "The Smallest Patch That Matters", "Vulnerability Management",
                  "A neglected software update can become an easy entry point for an attacker. I now review security advisories, prioritize internet-facing systems, and verify that critical patches were actually applied instead of assuming the update completed.", "September 16, 2026"),
                 (3, users["Capitan Jin"], "A Calm Way to Read Suspicious Messages", "Phishing Awareness",
                  "Phishing attempts often rely on urgency rather than sophisticated code. Before clicking a link or opening an attachment, I check the sender, inspect the destination carefully, and confirm unusual requests through a trusted channel.", "September 14, 2026"),
@@ -287,10 +299,10 @@ def initialize_database():
             )
             """,
             (
-                users["bob"],
+                users["jinvicular"],
                 "Top_Secret",
-                "bob_account/__pycache__/Top_Secret",
-                users["bob"],
+                "jinvicular_account/__pycache__/Top_Secret",
+                users["jinvicular"],
                 "Top_Secret",
             ),
         )
@@ -309,11 +321,11 @@ def initialize_database():
         )
         connection.execute(
             "UPDATE users SET password_hash = ? WHERE username = ?",
-            (password_hash("P8pVqr{hQP85"), "bob"),
+            (password_hash("P8pVqr{hQP85"), "jinvicular"),
         )
         connection.execute(
-            "UPDATE users SET uuid = ? WHERE username = 'bob' AND (uuid IS NULL OR uuid = '')",
-            (generate_uuid("bob"),),
+            "UPDATE users SET uuid = ? WHERE username = 'jinvicular' AND (uuid IS NULL OR uuid = '')",
+            (generate_uuid("jinvicular"),),
         )
 
 
@@ -372,6 +384,12 @@ def page(title, body, user=None):
     input {{ background: #0b1520; border: 1px solid var(--line); color: var(--ink); padding: 10px; width: min(100%, 300px); }}
     button {{ background: var(--red); border: 0; color: white; cursor: pointer; font-weight: 800; padding: 11px 20px; text-transform: uppercase; letter-spacing: .08em; }}
     footer {{ border-top: 1px solid var(--line); color: var(--muted); font: .72rem Arial, sans-serif; letter-spacing: .08em; padding: 22px 0 34px; text-transform: uppercase; }}
+    .policy {{ margin-top: 14px; text-transform: none; letter-spacing: normal; }}
+    .policy summary {{ color: var(--gold); cursor: pointer; display: inline-block; font-weight: 700; letter-spacing: .06em; list-style: none; text-transform: uppercase; }}
+    .policy summary::-webkit-details-marker {{ display: none; }}
+    .policy summary::before {{ content: "+ "; }}
+    .policy[open] summary::before {{ content: "− "; }}
+    .policy p {{ font-size: .78rem; line-height: 1.5; margin: 10px auto 0; max-width: 760px; }}
     @media (max-width: 680px) {{ .shell {{ width: min(100% - 28px, 560px); }} header {{ padding: 20px 0; }} nav a {{ margin-left: 12px; }} main {{ padding-top: 44px; }} .post-grid {{ grid-template-columns: 1fr; }} .post-card {{ min-height: 260px; }} }}
   </style>
 </head>
@@ -379,7 +397,13 @@ def page(title, body, user=None):
   <div class="shell">
     <header><a class="brand" href="/">CyberMaxxing Forum</a><nav><a href="/">Briefings</a><a href="/authors">Personnel</a>{account_link}</nav></header>
     <main>{body}</main>
-    <footer>Restricted community forum · CyberMaxxing Forum · Internal use</footer>
+    <footer>Restricted community forum · CyberMaxxing Forum · Internal use
+      <details class="policy">
+        <summary>Policy</summary>
+        <p>This is not an official CITS3006 or government website. It is provided for lab use only, and any similarities to real people, organisations, or websites are unintentional.</p>
+        <p>Dr Jin Hong has authorised the use of his pictures and identity for this challenge.</p>
+      </details>
+    </footer>
   </div>
 </body>
 </html>"""
@@ -437,6 +461,11 @@ class Handler(BaseHTTPRequestHandler):
             files_section = f'<h2>Personal files</h2><ul class="file-list">{file_links}</ul>'
         else:
             files_section = '<p class="subtle">Personal files are private to this user.</p>'
+        flag_section = (
+            '<h2>Recovered flag</h2><p class="flag">FLAG{Bob_7hE_BUiLDerFL@9}</p>'
+            if private and profile["username"] == "jinvicular"
+            else ""
+        )
         name = display_name(profile["username"])
         image = PROFILE_IMAGES.get(profile["username"])
         avatar = (
@@ -444,7 +473,7 @@ class Handler(BaseHTTPRequestHandler):
             if image
             else f'<div class="avatar">{html.escape(name[0].upper())}</div>'
         )
-        body = f"""<section class="profile"><div class="kicker">Personnel dossier · {html.escape("private" if private else "public")}</div>{avatar}<h1>{html.escape(name)}</h1><p class="subtle">Field notes, personal briefings, and material cleared for this forum.</p><h2>Stories by {html.escape(name)}</h2>{links}{files_section}<p><a class="back-link" href="/">← Back to briefings</a></p></section>"""
+        body = f"""<section class="profile"><div class="kicker">Personnel dossier · {html.escape("private" if private else "public")}</div>{avatar}<h1>{html.escape(name)}</h1><p class="subtle">Field notes, personal briefings, and material cleared for this forum.</p><h2>Stories by {html.escape(name)}</h2>{links}{files_section}{flag_section}<p><a class="back-link" href="/">← Back to briefings</a></p></section>"""
         title = f'{name} · Personnel'
         self.send_page(page(title, body, user))
 
@@ -475,7 +504,7 @@ class Handler(BaseHTTPRequestHandler):
                 <p><label for="password">Password</label><br><input id="password" name="password" type="password" required></p>
                 <button type="submit">Log in</button>
               </form>
-              <p class="subtle">Demo accounts: CuriousDuck228 / v3rys1!r0ngp2ssw0r8 and bob / P8pVqr{hQP85.</p>
+              <p class="subtle">Demo accounts: CuriousDuck228 / v3rys1!r0ngp2ssw0r8 and jinvicular / P8pVqr{hQP85.</p>
             </section>"""
             self.send_page(page("Log in", body, user))
             return
@@ -493,8 +522,9 @@ class Handler(BaseHTTPRequestHandler):
             file_id = path.rsplit("/", 1)[-1]
             with database() as connection:
                 file_record = connection.execute(
-                    "SELECT file_name, file_path FROM user_files WHERE id = ?",
-                    (file_id,),
+                    """SELECT file_name, file_path FROM user_files
+                    WHERE id = ? AND user_id = ?""",
+                    (file_id, user["id"]),
                 ).fetchone()
             if not file_record or not file_record["file_path"]:
                 self.send_page(page("Not found", '<div class="profile"><h1>File not found</h1><a class="back-link" href="/">← Back to stories</a></div>'), 404)
@@ -585,6 +615,9 @@ class Handler(BaseHTTPRequestHandler):
                 ).fetchone()
                 if not profile:
                     self.send_page(page("Not found", '<div class="profile"><h1>Profile not found</h1><a class="back-link" href="/">← Back to stories</a></div>'), 404)
+                    return
+                if profile["id"] != user["id"]:
+                    self.send_page(page("Forbidden", '<div class="profile"><h1>Private profile</h1><p class="subtle">You can only access your own private profile.</p><a class="back-link" href="/">← Back to briefings</a></div>'), 403)
                     return
                 self.render_profile(connection, profile, user, private=True)
                 return

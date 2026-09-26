@@ -2,10 +2,8 @@
 
 CyberMaxxing Forum is a small classified-style community forum built with Python's
 standard library. CuriousDuck228, Jinvicular, Capitan Jin, and Jin Jin Sakhur each have a short
-public post. The database keeps the stable `bob` and `eve` account identifiers
-for compatibility, while the interface displays those contributors as
-Jinvicular and Jin Jin Sakhur. Visitors can open a
-post and follow its author to `/profile/stories?userid=<author-uuid>`. The UUID
+public post. Visitors can open a post and follow its author to
+`/profile/stories?userid=<author-uuid>`. The UUID
 is used only as the profile lookup identifier and is not displayed on author
 profiles or when hovering over an author name.
 
@@ -36,26 +34,25 @@ lists a card for every author with published stories.
 
 ## Login
 
-Visitors can log in with either seeded account:
+Visitors can log in with any seeded account:
 
 | Username | Password |
 | --- | --- |
 | `admin` | `no1!0rpu8li6k` |
 | `CuriousDuck228` | `v3rys1!r0ngp2ssw0r8` |
-| `bob` | `P8pVqr{hQP85` |
+| `jinvicular` | `P8pVqr{hQP85` |
 | `Capitan Jin` | `dianapass` |
 | `eve` | `evepass` |
 
-After logging in, open a private profile at `/users/user?userid=<user-uuid>`.
-The route requires authentication, but intentionally uses the UUID from the
-URL without checking that it belongs to the logged-in account. Changing
-`userid` to another user's UUID therefore loads that user's private profile
-and files, including downloadable files, demonstrating the IDOR vulnerability.
-Public author profiles and
-stories use `/profile/stories?userid=<author-uuid>`; these can be viewed by any
-visitor and never include personal files. Jinvicular's downloadable **Top_Secret**
-file is stored under `bob_account/__pycache__/Top_Secret`. CuriousDuck228, Capitan Jin, and
-Jin Jin Sakhur also has downloadable story-related files on their private profiles.
+After logging in, open your private profile at `/users/user?userid=<user-uuid>`.
+Private profiles and file downloads are restricted to the account that owns
+them. Public author profiles and stories use
+`/profile/stories?userid=<author-uuid>`; these can be viewed by any visitor and
+never include personal files or private flags. Jinvicular's private profile
+contains the challenge flag, and its downloadable **Top_Secret** file is stored
+under `jinvicular_account/__pycache__/Top_Secret`. CuriousDuck228, Capitan Jin,
+and Jin Jin Sakhur also have downloadable story-related files on their private
+profiles.
 
 ## Network challenge
 
