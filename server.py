@@ -12,7 +12,7 @@ import time
 import uuid
 
 
-BIND_HOST = "127.0.0.1"
+BIND_HOST = "0.0.0.0"
 UUID_HOST = "127.0.0.1"
 PORT = 8001
 BACKUP_HOST = "0.0.0.0"
